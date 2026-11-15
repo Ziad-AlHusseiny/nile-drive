@@ -81,11 +81,44 @@
     }
   }
 
+  const savedCars = new Set();
+  try { const stored = JSON.parse(localStorage.getItem('nile-favorites') || '[]'); if (Array.isArray(stored)) stored.filter(id => cars.some(c => c.id === id)).forEach(id => savedCars.add(id)); } catch (_) {}
+  const comparedCars = new Set();
+  let savedOnly = false;
+  let featureMode = null;
+  const featureDialog = document.createElement('dialog');
+  featureDialog.className = 'feature-dialog';
+  featureDialog.setAttribute('aria-labelledby', 'feature-title');
+  document.body.append(featureDialog);
+  featureDialog.addEventListener('click', e => { if (e.target === featureDialog || e.target.closest('[data-feature-close]')) featureDialog.close(); });
+  featureDialog.addEventListener('close', () => { document.body.classList.remove('feature-open'); featureMode = null; });
+  const toolsBar = document.createElement('div');
+  toolsBar.className = 'fleet-extras';
+  $('#fleet-grid').before(toolsBar);
+  function featureControls() {
+    toolsBar.innerHTML = `<button type="button" data-saved-only aria-pressed="${savedOnly}">♡ ${tr('Saved cars', 'المفضلة')} (${savedCars.size})</button><button type="button" data-compare-open ${comparedCars.size < 2 ? 'disabled' : ''}>${tr('Compare', 'قارن العربيات')} (${comparedCars.size}/3)</button><span>${tr('Choose 2 or 3 cars to compare.', 'اختار عربيتين أو تلاتة للمقارنة.')}</span>`;
+  }
+  function renderFeature() {
+    const selected = featureMode === 'compare' ? cars.filter(c => comparedCars.has(c.id)) : cars.filter(c => c.id === featureMode);
+    featureDialog.innerHTML = `<div class="feature-head"><div><span class="eyebrow">${tr('YOUR STAY, YOUR CHOICE', 'إقامتك على مزاجك')}</span><h2 id="feature-title">${featureMode === 'compare' ? tr('Find your perfect fit', 'اختار الأنسب ليك') : carName(selected[0])}</h2></div><button type="button" data-feature-close aria-label="${tr('Close', 'إغلاق')}">×</button></div><p class="feature-note">${tr('Sample prices. Availability, deposit, insurance and all extra fees must be confirmed in your quote.', 'أسعار توضيحية. توفر العربية والضمان والتغطية وأي رسوم إضافية لازم تتأكد في عرض السعر.')}</p><div class="feature-cars">${selected.map(car => `<article class="feature-car"><img src="${car.image}" alt="${carName(car)}" width="720" height="480"><h3>${carName(car)}</h3><p>${tr(car.tag, car.tagAr)}</p><dl><div><dt>${tr('Model year', 'سنة الموديل')}</dt><dd>${car.year}</dd></div><div><dt>${tr('Seats / bags', 'مقاعد / شنط')}</dt><dd>${car.seats} / ${car.bags}</dd></div><div><dt>${tr('Gearbox', 'ناقل الحركة')}</dt><dd>${tr('Automatic', 'أوتوماتيك')}</dd></div>${[30,60,90].map(days => `<div><dt>${days} ${tr('days — total', 'يوم — الإجمالي')}</dt><dd><bdi>${money(monthlyFor(car, days) * days / 30)}</bdi></dd></div>`).join('')}</dl><button class="primary-btn" type="button" data-feature-book="${car.id}">${tr('Plan with this car', 'خطط بالعربية دي')} ${icon('arrow')}</button></article>`).join('')}</div><p class="feature-note">${tr('60 days: 5% off. 90 days: 10% off. Totals are rental estimates only; extra fees are not included. Non-EGP values are rough conversions.', 'خصم ٥٪ لـ٦٠ يوم و١٠٪ لـ٩٠ يوم. الإجماليات تقدير للإيجار فقط ومش شاملة الرسوم الإضافية. العملات غير الجنيه تحويلات تقريبية.')}</p>`;
+  }
+  function openFeature(mode) { featureMode = mode; renderFeature(); featureDialog.showModal(); document.body.classList.add('feature-open'); }
+  document.addEventListener('click', e => {
+    const save = e.target.closest('[data-save-car]');
+    if (save) { const id = save.dataset.saveCar; savedCars.has(id) ? savedCars.delete(id) : savedCars.add(id); try { localStorage.setItem('nile-favorites', JSON.stringify([...savedCars])); } catch (_) {} renderFleet(); $(`[data-save-car="${id}"]`)?.focus({preventScroll:true}); }
+    const compare = e.target.closest('[data-compare-car]');
+    if (compare) { const id = compare.dataset.compareCar; if (comparedCars.has(id)) comparedCars.delete(id); else if (comparedCars.size < 3) comparedCars.add(id); renderFleet(); $(`[data-compare-car="${id}"]`)?.focus({preventScroll:true}); }
+    if (e.target.closest('[data-saved-only]')) { savedOnly = !savedOnly; renderFleet(); $('[data-saved-only]').focus({preventScroll:true}); }
+    if (e.target.closest('[data-compare-open]') && comparedCars.size >= 2) openFeature('compare');
+    const details = e.target.closest('[data-car-details]'); if (details) openFeature(details.dataset.carDetails);
+    const book = e.target.closest('[data-feature-book]'); if (book) { featureDialog.close(); openBooking(book.dataset.featureBook, $(`[data-car-details="${book.dataset.featureBook}"]`) || $('[data-saved-only]')); }
+  });
+
   function renderFleet(announce = false) {
     const grid = $('#fleet-grid');
     if (!grid) return;
     if (announce) state.status = 'filter';
-    const filtered = cars.filter((car) => state.category === 'all' || car.category === state.category);
+    const filtered = cars.filter((car) => (state.category === 'all' || car.category === state.category) && (!savedOnly || savedCars.has(car.id)));
     const visible = state.showAll ? filtered : filtered.slice(0, 3);
     grid.innerHTML = visible.map((car) => `
       <article class="car-card">
@@ -98,8 +131,11 @@
           <div class="car-title-line"><h3 class="car-name">${escapeHTML(carName(car))}</h3><span class="car-year"><bdi>${car.year}</bdi></span></div>
           <div class="car-specs"><span>${icon('gear')} ${tr('Automatic', 'أوتوماتيك')}</span><span>${icon('person')} ${car.seats} ${tr('seats', 'مقاعد')}</span><span>${icon('bag')} ${car.bags} ${tr('bags', 'شنط')}</span></div>
           <div class="car-price-line"><div><span class="car-price"><span class="price-currency">${currencyName(state.currency)}</span> <bdi dir="ltr">${numberPrice(monthlyFor(car))}</bdi></span><span class="car-price-unit"> / ${tr('30 days', '30 يوم')}</span>${state.duration > 30 ? `<span class="car-saving">${tr(`${Math.round(discountFor(state.duration) * 100)}% longer-stay saving`, `خصم ${Math.round(discountFor(state.duration) * 100)}% للإقامة الأطول`)}</span>` : ''}</div><button class="car-book-btn" type="button" data-book-car="${car.id}" aria-label="${escapeHTML(tr(`Plan a rental with ${car.name}`, `خطط لإيجار ${car.nameAr}`))}">${icon('arrow')}</button></div>
+          <div class="car-extra-actions"><button type="button" data-car-details="${car.id}">${tr('View details', 'تفاصيل العربية')}</button><button type="button" data-save-car="${car.id}" aria-pressed="${savedCars.has(car.id)}" aria-label="${tr('Save', 'حفظ')} ${carName(car)}">${savedCars.has(car.id) ? '♥' : '♡'}</button><button type="button" data-compare-car="${car.id}" aria-pressed="${comparedCars.has(car.id)}" ${comparedCars.size >= 3 && !comparedCars.has(car.id) ? 'disabled' : ''}>${comparedCars.has(car.id) ? '✓ ' : '+ '}${tr('Compare', 'قارن')}</button></div>
         </div>
       </article>`).join('');
+    if (!visible.length) grid.innerHTML = `<p class="empty-saved">${tr('No saved cars in this category yet. Tap the heart on a car to save it, or choose another category.', 'مفيش عربيات محفوظة في الفئة دي. اضغط على القلب لحفظ عربية أو اختار فئة تانية.')}</p>`;
+    featureControls();
     const moreButton = $('#show-all-cars');
     if (moreButton) {
       moreButton.hidden = filtered.length <= 3;
@@ -413,6 +449,7 @@
       if (field && dialog.contains(field)) field.focus({ preventScroll: true });
     }
     renderFleet();
+    if (featureDialog.open) renderFeature();
     menuLabel();
     dateInput?.setCustomValidity('');
   });
