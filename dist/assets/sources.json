@@ -1,0 +1,15 @@
+{
+  "hero": "AI-generated custom Egypt coast photo, built-in imagegen, 2026-11-11",
+  "cars_note": "Illustrative external stock photos for private design demo. Replace with original fleet photos before public launch. Source rights not verified.",
+  "photos": {
+    "corolla": "https://vehicle-images.carscommerce.inc/stock-images/thumbnails/large/chrome/24a76ea90278951742ef833b7dfbffa8.png",
+    "elantra": "https://di-uploads-pod37.dealerinspire.com/amatohyundaiofglendale/uploads/2024/01/24Hyundai-Elantra-Limited-IntenseBlue-Jellybean.png",
+    "sunny": "https://alsaadrentacar.com/storage/nissan-sunny-2024.png",
+    "sportage": "https://images.dealer.com/autodata/us/color/2024/USD40KIS012E0/GWP.jpg",
+    "tucson": "https://pictures.dealer.com/k/kerryhyundainissanoffloren/1234/4d45ee5d9937415ea9f11ed021fd2f04.png",
+    "peugeot": "https://ymimg1.b8cdn.com/resized/car_model/8175/logo/webp_spotlight_web_2022_Peugeot_3008_Exterior_01.webp",
+    "lifestyle": "https://images.unsplash.com/photo-1539768942893-daf53e448371?auto=format&fit=crop&w=1200&q=85"
+  },
+  "lifestyle_note": "Giza pyramids at sunset, not the north coast. Unsplash photo asset.",
+  "hero_prompt": "Premium photoreal editorial photo for Egypt monthly car rental website. Dark charcoal compact SUV on the right of a quiet Mediterranean coastal road near El Alamein, warm sunset, sandy limestone hills, palms, resort architecture, sea behind right. Dark open space left for white headline. No logos, text, people, or readable plates. Built-in imagegen used."
+}
